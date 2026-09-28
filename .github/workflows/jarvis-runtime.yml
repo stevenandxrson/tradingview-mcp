@@ -1,0 +1,37 @@
+name: Jarvis runtime
+
+# Gate for the branch that Jarvis runs (~/Projects/jarvis/tradingview-mcp).
+# Mirrors the checks in jarvis/scripts/run_quality_checks.sh so every PR,
+# including Dependabot security updates, arrives verified.
+
+on:
+  push:
+    branches: [jarvis-runtime]
+  pull_request:
+    branches: [jarvis-runtime]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit (high severity gate)
+        run: npm audit --audit-level=high
+
+      - name: Large CLI JSON output contract
+        run: node --test --test-name-pattern="emits one complete JSON" tests/cli.test.js
+
+      - name: Unit tests
+        run: npm run test:unit
